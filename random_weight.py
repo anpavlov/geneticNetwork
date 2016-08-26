@@ -11,11 +11,11 @@ def random_weights(dim):
                 weights[i][j] = 0
             else:
                 if random.random() > 0.5:
-                    weights[i][j] = random.randint(1, 15)
+                    weights[i][j] = random.randint(1, 20)
                     weights[j][i] = weights[i][j]
                 else:
-                    weights[i][j] = 1000000
-                    weights[j][i] = 1000000
+                    weights[i][j] = 9999999
+                    weights[j][i] = 9999999
     return weights
 
 

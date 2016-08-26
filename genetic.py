@@ -4,20 +4,23 @@ from chromosome import Chromosome
 dim = 10
 chromosome_length = dim  # min is (dim - 2)
 
-weights = [
-    [ 0      ,	1000000,	5      ,	1000000,	3      ,	15     ,	5      ,	1000000,	1000000,	15     , ],
-    [ 1000000,	0      ,	1000000,	15     ,	1000000,	3      ,	1000000,	7      ,	11     ,	1000000, ],
-    [ 5      ,	1000000,	0      ,	1000000,	1000000,	1000000,	11     ,	14     ,	1000000,	6      , ],
-    [ 1000000,	15     ,	1000000,	0      ,	1000000,	1000000,	1000000,	8      ,	1000000,	3      , ],
-    [ 3      ,	1000000,	1000000,	1000000,	0      ,	11     ,	1000000,	1000000,	9      ,	1000000, ],
-    [ 15     ,	3      ,	1000000,	1000000,	11     ,	0      ,	1000000,	1000000,	4      ,	1000000, ],
-    [ 5      ,	1000000,	11     ,	1000000,	1000000,	1000000,	0      ,	4      ,	1000000,	1000000, ],
-    [ 1000000,	7      ,	14     ,	8      ,	1000000,	1000000,	4      ,	0      ,	1000000,	4      , ],
-    [ 1000000,	11     ,	1000000,	1000000,	9      ,	4      ,	1000000,	1000000,	0      ,	15     , ],
-    [ 15     ,	1000000,	6      ,	3      ,	1000000,	1000000,	1000000,	4      ,	15     ,	0      , ],
-]
+my_src = 4
+my_dest = 1
+my_gens = 1000
+quite = True
 
-quite = False
+weights = [
+    [ 0      ,	10     ,	9999999,	9999999,	3      ,	14     ,	9999999,	15     ,	3      ,	14     , ],
+    [ 10     ,	0      ,	9999999,	9999999,	16     ,	20     ,	8      ,	9999999,	9999999,	13     , ],
+    [ 9999999,	9999999,	0      ,	2      ,	15     ,	18     ,	9999999,	9999999,	9999999,	18     , ],
+    [ 9999999,	9999999,	2      ,	0      ,	5      ,	9999999,	9999999,	9999999,	6      ,	9999999, ],
+    [ 3      ,	16     ,	15     ,	5      ,	0      ,	9999999,	9999999,	4      ,	16     ,	9999999, ],
+    [ 14     ,	20     ,	18     ,	9999999,	9999999,	0      ,	9999999,	9999999,	9999999,	9999999, ],
+    [ 9999999,	8      ,	9999999,	9999999,	9999999,	9999999,	0      ,	9999999,	9      ,	9999999, ],
+    [ 15     ,	9999999,	9999999,	9999999,	4      ,	9999999,	9999999,	0      ,	9999999,	2      , ],
+    [ 3      ,	9999999,	9999999,	6      ,	16     ,	9999999,	9      ,	9999999,	0      ,	8      , ],
+    [ 14     ,	13     ,	18     ,	9999999,	9999999,	9999999,	9999999,	2      ,	8      ,	0      , ],
+]
 
 
 class GeneNetwork(object):
@@ -40,7 +43,7 @@ class GeneNetwork(object):
         self.destination = destination
         self.population = []
         self.population_size = 0
-        self.results = []
+        # self.results = []
         self.best = None
 
     def start(self, gen_max, pop_size):
@@ -50,6 +53,11 @@ class GeneNetwork(object):
         :param pop_size: initial population size
         :return: best solution found
         """
+        self.population = []
+        self.population_size = 0
+        # self.results = []
+        self.best = None
+
         gen = 1  # from first generation
         self.generate_population(pop_size)  # generate initial population
         self.population_size = pop_size
@@ -59,25 +67,43 @@ class GeneNetwork(object):
 
         while gen <= gen_max:
             gen += 1
-            p = 1
+            # p = 1
             new_population = list()
-            while p <= self.population_size:
-                p += 1
+            for p in range(self.population_size):
                 parents = random.sample(range(self.population_size), 2)
                 newbie = self.crossover(self.population[parents[0]], self.population[parents[1]])
-                newbie.mutate()
+                # TODO check child?
+                # newbie.mutate()
                 fit = self.fitness(newbie)
-                self.results.append((newbie, fit))
+                # self.results.append((newbie, fit))
                 new_population.append(newbie)
                 if self.best is None or self.best[1] > fit:
                     self.best = (newbie, fit)
             if not quite:
-                pretty_print('%dth generation (after crossover, mutations): ' % gen)
+                pretty_print('%dth generation (after crossover): ' % gen)
                 self.print_chromosomes(new_population)
             self.selection(self.population, new_population)
             if not quite:
-                pretty_print('After selection: ')
-                self.print_chromosomes(new_population)
+                pretty_print('After selection (after crossover): ')
+                self.print_chromosomes(self.population)
+
+            mutants = []
+            for chrom in self.population:
+                new_v = []
+                new_v.extend(chrom.get())
+                new_chrom = Chromosome(new_v)
+                new_chrom.mutate()
+                fit = self.fitness(new_chrom)
+                mutants.append(new_chrom)
+                if self.best is None or self.best[1] > fit:
+                    self.best = (chrom, fit)
+            if not quite:
+                pretty_print('%dth generation (after mutations): ' % gen)
+                self.print_chromosomes(mutants)
+            self.selection(self.population, mutants)
+            if not quite:
+                pretty_print('After selection (after mutations): ')
+                self.print_chromosomes(self.population)
         return self.best
 
     def selection(self, prev, now):
@@ -88,8 +114,18 @@ class GeneNetwork(object):
         :return:
         """
         prev.extend(now)
-        prev.sort(lambda x, y: self.fitness(x) - self.fitness(y))
+        # check = []
+        # check.extend(prev)
+        self.bubble_sort(prev)
         self.population = prev[:self.population_size]
+
+    def bubble_sort(self, alist):
+        for passnum in range(len(alist)-1,0,-1):
+            for i in range(passnum):
+                if self.fitness(alist[i])>self.fitness(alist[i+1]):
+                    temp = alist[i]
+                    alist[i] = alist[i+1]
+                    alist[i+1] = temp
 
     def generate_population(self, n):
         """
@@ -143,6 +179,8 @@ def pretty_print(to_print, hint=''):
 
 
 if __name__ == "__main__":
-    gene_network = GeneNetwork(dim, weights, chromosome_length, 0, 9)
-    res = gene_network.start(1000, 10)  # start with 1000 generations and 10 initial chromosomes
+    gene_network = GeneNetwork(dim, weights, chromosome_length, my_src, my_dest)
+    res = 100
+    while res > 13:
+        res = gene_network.start(my_gens, 10)  # start with 1000 generations and 10 initial chromosomes
     pretty_print(res, 'Solution: ')
